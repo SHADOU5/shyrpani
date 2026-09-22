@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  nombre         String?
+  creadoEn       DateTime        @default(now())
+  conversaciones Conversacion[]
+}
+
+model Conversacion {
+  id        String    @id @default(cuid())
+  usuarioId String
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id])
+  titulo    String?
+  creadoEn  DateTime  @default(now())
+  mensajes  Mensaje[]
+}
+
+model Mensaje {
+  id                   String                @id @default(cuid())
+  conversacionId       String
+  conversacion         Conversacion          @relation(fields: [conversacionId], references: [id])
+  rol                  String                // "usuario" | "asistente" | "sistema"
+  contenido            String
+  creadoEn             DateTime              @default(now())
+  ejecucionesHabilidad EjecucionHabilidad[]
+}
+
+model EjecucionHabilidad {
+  id               String   @id @default(cuid())
+  mensajeId        String
+  mensaje          Mensaje  @relation(fields: [mensajeId], references: [id])
+  nombreHabilidad  String   // ej: "analisis-negocio/foda"
+  entrada          Json
+  salida           Json?
+  exitoso          Boolean  @default(false)
+  creadoEn         DateTime @default(now())
+}
