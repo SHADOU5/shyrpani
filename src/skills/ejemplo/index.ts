@@ -1,13 +1,17 @@
 import { Skill } from "../../core/types";
 
 const skillEjemplo: Skill = {
-  nombre: "sistema/eco",
-  descripcion: "Repite el texto recibido, útil para probar que el registro de skills funciona.",
+  nombre: "sistema_eco",
+  descripcion: "Repite el texto recibido. Úsala solo si el usuario pide explícitamente probar el sistema de skills.",
+  esquemaEntrada: {
+    type: "object",
+    properties: {
+      texto: { type: "string", description: "Texto a repetir" },
+    },
+    required: ["texto"],
+  },
   async ejecutar(entrada, contexto) {
-    const texto = typeof entrada === "object" && entrada !== null && "texto" in entrada
-      ? (entrada as { texto: string }).texto
-      : String(entrada);
-
+    const { texto } = entrada as { texto: string };
     return {
       exitoso: true,
       salida: { eco: texto, usuarioId: contexto.usuarioId },

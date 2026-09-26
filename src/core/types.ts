@@ -11,8 +11,12 @@ export interface ResultadoSkill {
 }
 
 export interface Skill {
-  nombre: string;          // ej: "clima/consultar"
-  descripcion: string;
-  // valida y ejecuta la skill con el input recibido
+  nombre: string;               // ej: "clima/consultar"
+  descripcion: string;          // el modelo usa esto para decidir CUÁNDO usarla
+  esquemaEntrada: {              // JSON Schema de los parámetros que recibe
+    type: "object";
+    properties: Record<string, unknown>;
+    required?: string[];
+  };
   ejecutar: (entrada: unknown, contexto: ContextoSkill) => Promise<ResultadoSkill>;
 }

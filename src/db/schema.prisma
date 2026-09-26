@@ -13,6 +13,7 @@ model Usuario {
   nombre         String?
   creadoEn       DateTime        @default(now())
   conversaciones Conversacion[]
+  Notas          Nota[]
 }
 
 model Conversacion {
@@ -43,4 +44,13 @@ model EjecucionHabilidad {
   salida           Json?
   exitoso          Boolean  @default(false)
   creadoEn         DateTime @default(now())
+}
+
+model Nota {
+  id         String   @id @default(cuid())
+  usuarioId  String
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+  contenido  String
+  completada Boolean  @default(false)
+  creadoEn   DateTime @default(now())
 }
