@@ -4,12 +4,21 @@ import { registroSkills } from "./skillRegistry";
 import { ContextoSkill } from "./types";
 
 const prisma = new PrismaClient();
-const groq = new Groq(); // lee GROQ_API_KEY del entorno automáticamente
+const groq = new Groq();
 
 const MODELO = "openai/gpt-oss-20b";
 
 const PROMPT_SISTEMA =
   "Eres Shyrpani, un asistente personal estilo Jarvis. Responde en español, de forma clara y directa. Usa las herramientas disponibles solo cuando realmente lo necesites para responder al usuario.";
+
+// Error controlado que ya trae un mensaje seguro para mostrar al usuario
+export class ErrorConversacion extends Error {
+  codigoHttp: number;
+  constructor(mensajeUsuario: string, codigoHttp: number) {
+    super(mensajeUsuario);
+    this.codigoHttp = codigoHttp;
+  }
+}
 
 function construirHerramientas() {
   return registroSkills.listar().map((skill) => ({
@@ -22,6 +31,41 @@ function construirHerramientas() {
   }));
 }
 
+async function llamarModelo(
+  mensajes: Groq.Chat.ChatCompletionMessageParam[],
+  herramientas: ReturnType<typeof construirHerramientas>
+) {
+  try {
+    return await groq.chat.completions.create({
+      model: MODELO,
+      messages: mensajes,
+      tools: herramientas.length > 0 ? herramientas : undefined,
+    });
+  } catch (error) {
+    if (error instanceof Groq.APIError) {
+      if (error.status === 429) {
+        throw new ErrorConversacion(
+          "Se alcanzó el límite de uso gratuito de la IA por ahora. Intenta de nuevo en unos minutos.",
+          429
+        );
+      }
+      if (error.status === 401 || error.status === 403) {
+        throw new ErrorConversacion(
+          "Hay un problema con la configuración de la IA (clave inválida). Contacta al administrador.",
+          502
+        );
+      }
+      if (error.status >= 500) {
+        throw new ErrorConversacion(
+          "El servicio de IA no está disponible en este momento. Intenta de nuevo en unos minutos.",
+          503
+        );
+      }
+    }
+    throw new ErrorConversacion("Ocurrió un error inesperado al procesar tu mensaje.", 500);
+  }
+}
+
 export async function procesarMensaje(params: {
   usuarioId: string;
   conversacionId: string;
@@ -29,18 +73,16 @@ export async function procesarMensaje(params: {
 }) {
   const { usuarioId, conversacionId, contenido } = params;
 
-  // 1. Guarda el mensaje del usuario
   const mensajeUsuario = await prisma.mensaje.create({
     data: { conversacionId, rol: "usuario", contenido },
   });
 
-  // 2. Trae el historial de la conversación
   const historialDesc = await prisma.mensaje.findMany({
     where: { conversacionId },
     orderBy: { creadoEn: "desc" },
     take: 20,
   });
-  const historial = historialDesc.reverse(); // vuelve a orden cronológico (más antiguo -> más nuevo)
+  const historial = historialDesc.reverse();
 
   const mensajes: Groq.Chat.ChatCompletionMessageParam[] = [
     { role: "system", content: PROMPT_SISTEMA },
@@ -53,16 +95,9 @@ export async function procesarMensaje(params: {
   const herramientas = construirHerramientas();
   const contexto: ContextoSkill = { usuarioId, conversacionId, mensajeId: mensajeUsuario.id };
 
-  // 3. Llama a Groq
-  let respuesta = await groq.chat.completions.create({
-    model: MODELO,
-    messages: mensajes,
-    tools: herramientas.length > 0 ? herramientas : undefined,
-  });
-
+  let respuesta = await llamarModelo(mensajes, herramientas);
   let opcion = respuesta.choices[0];
 
-  // 4. Si el modelo pide usar herramientas, ejecútalas y continúa el ciclo
   while (opcion.finish_reason === "tool_calls" && opcion.message.tool_calls) {
     mensajes.push(opcion.message);
 
@@ -74,7 +109,7 @@ export async function procesarMensaje(params: {
       try {
         entrada = JSON.parse(llamada.function.arguments);
       } catch {
-        // argumentos vacíos o inválidos, se ejecuta con {}
+        // argumentos vacíos o inválidos
       }
 
       let resultado;
@@ -101,15 +136,10 @@ export async function procesarMensaje(params: {
       });
     }
 
-    respuesta = await groq.chat.completions.create({
-      model: MODELO,
-      messages: mensajes,
-      tools: herramientas.length > 0 ? herramientas : undefined,
-    });
+    respuesta = await llamarModelo(mensajes, herramientas);
     opcion = respuesta.choices[0];
   }
 
-  // 5. Guarda la respuesta final del asistente
   const textoFinal = opcion.message.content ?? "";
 
   const mensajeAsistente = await prisma.mensaje.create({
