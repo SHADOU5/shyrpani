@@ -1,9 +1,8 @@
 import Groq from "groq-sdk";
-import { PrismaClient } from "@prisma/client";
 import { registroSkills } from "./skillRegistry";
 import { ContextoSkill } from "./types";
+import { prisma } from "../db/cliente";
 
-const prisma = new PrismaClient();
 const groq = new Groq();
 
 const MODELO = "openai/gpt-oss-20b";

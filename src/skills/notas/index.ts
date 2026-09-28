@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import { Skill } from "../../core/types";
+import { prisma } from "../../db/cliente";
 
-const prisma = new PrismaClient();
 
 const skillNotas: Skill = {
   nombre: "gestionar_notas",
