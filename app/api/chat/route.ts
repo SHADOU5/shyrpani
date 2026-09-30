@@ -1,7 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { procesarMensaje, ErrorConversacion } from "../../../src/core/motorConversacion";
 
+export const maxDuration = 60;
+
+function claveValida(recibida: string | null): boolean {
+  const esperada = process.env.SHYRPANI_API_KEY;
+  if (!esperada || !recibida) return false;
+
+  const a = Buffer.from(recibida);
+  const b = Buffer.from(esperada);
+  if (a.length !== b.length) return false;
+
+  return timingSafeEqual(a, b);
+}
+
 export async function POST(req: NextRequest) {
+  if (!claveValida(req.headers.get("x-api-key"))) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
   const body = await req.json();
   const { usuarioId, conversacionId, contenido } = body;
 
