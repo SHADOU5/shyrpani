@@ -6,10 +6,6 @@ export const maxDuration = 60;
 
 function claveValida(recibida: string | null): boolean {
   const esperada = process.env.SHYRPANI_API_KEY;
-
-  console.log("DEBUG claveValida -> esperada existe:", !!esperada, "| longitud esperada:", esperada?.length ?? 0);
-  console.log("DEBUG claveValida -> recibida existe:", !!recibida, "| longitud recibida:", recibida?.length ?? 0);
-
   if (!esperada || !recibida) return false;
 
   const a = Buffer.from(recibida);
