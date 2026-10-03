@@ -141,9 +141,23 @@ export async function procesarMensaje(params: {
 
   const textoFinal = opcion.message.content ?? "";
 
-  const mensajeAsistente = await prisma.mensaje.create({
+    const mensajeAsistente = await prisma.mensaje.create({
     data: { conversacionId, rol: "asistente", contenido: textoFinal },
   });
 
+  const conversacionActual = await prisma.conversacion.findUnique({
+    where: { id: conversacionId },
+    select: { titulo: true },
+  });
+
+  if (conversacionActual && !conversacionActual.titulo) {
+    await prisma.conversacion.update({
+      where: { id: conversacionId },
+      data: { titulo: contenido.slice(0, 60) },
+    });
+  }
+
   return { mensajeUsuario, mensajeAsistente };
+
+  
 }
