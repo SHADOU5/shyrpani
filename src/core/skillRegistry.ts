@@ -4,13 +4,13 @@ import skillClima from "../skills/clima";
 import skillBusquedaWeb from "../skills/busqueda-web";
 import skillNotas from "../skills/notas";
 import skillAnalisis from "../skills/analisis-empresarial";
+import skillGeneradorCodigo from "../skills/generador-codigo";
 
 class RegistroSkills {
   private skills = new Map<string, Skill>();
 
   cargarTodas() {
-    const todas: Skill[] = [skillEjemplo, skillClima, skillBusquedaWeb, skillNotas, skillAnalisis];
-
+    const todas: Skill[] = [skillEjemplo, skillClima, skillBusquedaWeb, skillNotas, skillAnalisis, skillGeneradorCodigo];
     for (const skill of todas) {
       this.skills.set(skill.nombre, skill);
       console.log(`Skill registrada: ${skill.nombre}`);

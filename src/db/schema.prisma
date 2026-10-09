@@ -15,6 +15,7 @@ model Usuario {
   analisisEmpresariales AnalisisEmpresarial[]
   conversaciones        Conversacion[]
   Notas                 Nota[]
+  proyectos             ProyectoCodigo[]
 }
 
 model Conversacion {
@@ -64,4 +65,27 @@ model AnalisisEmpresarial {
   contenido String
   creadoEn  DateTime @default(now())
   usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+}
+
+
+model ProyectoCodigo {
+  id          String            @id @default(cuid())
+  usuarioId   String
+  usuario     Usuario           @relation(fields: [usuarioId], references: [id])
+  nombre      String
+  descripcion String?
+  stack       String
+  creadoEn    DateTime          @default(now())
+  archivos    ArchivoProyecto[]
+}
+
+model ArchivoProyecto {
+  id         String         @id @default(cuid())
+  proyectoId String
+  proyecto   ProyectoCodigo @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  ruta       String
+  contenido  String
+  creadoEn   DateTime       @default(now())
+
+  @@unique([proyectoId, ruta])
 }
